@@ -1,2 +1,2 @@
-class WeatherException:
+class WeatherException(BaseException):
     pass
