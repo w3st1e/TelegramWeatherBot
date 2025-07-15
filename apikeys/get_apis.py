@@ -1,4 +1,9 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()  # Загружает переменные из .env
+
 def get_api():
-    with open('D:/pythoncodes/TelegramBotWeather/apikeys.txt', 'r', encoding='utf-8') as file:
-        weatherapi, token = file.readline(), file.readline()
+    weatherapi = os.getenv("WEATHER_API")
+    token = os.getenv("TELEGRAM_TOKEN")
     return [weatherapi, token]

@@ -1,9 +1,9 @@
 import aiohttp
-from weather import WeatherException
 
 
 async def get_weather(city, API_KEY_WEATHER, units='metric', language='en'):
     url = f'http://api.openweathermap.org/geo/1.0/direct?q={city}&appid={API_KEY_WEATHER}'
+    print(url)
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response_location:
             if response_location.status != 200:

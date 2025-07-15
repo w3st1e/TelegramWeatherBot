@@ -13,10 +13,11 @@ dp = Dispatcher()
 class City(StatesGroup):
     city = State()
 
-
-
+#______start command handler_____
 @dp.message(Command('start'))
 async def cmd_start(message: types.Message):
+    global USER
+    USER = message.from_user
     en_kb = [[InlineKeyboardButton(text='⛅ Get weather', callback_data='weather')], [InlineKeyboardButton(text='⚙️ Settings', callback_data='settings'), InlineKeyboardButton(text='📊 My balance', callback_data='balance')]]
     ru_kb = [[InlineKeyboardButton(text='⛅ Получить данные о погоде', callback_data='weather')], [InlineKeyboardButton(text='⚙️ Настройки', callback_data='settings'), InlineKeyboardButton(text='📊 Мой баланс', callback_data='balance')]]
     kb = en_kb if await db.get_lang(message.from_user.id) == 'en' else ru_kb
@@ -26,7 +27,15 @@ async def cmd_start(message: types.Message):
         await message.answer(f"👋 Привет, <b>{message.from_user.full_name}</b>! ⛅ Меня зовут WeatherBot\n🤗 Как я могу помочь вам?", reply_markup=types.InlineKeyboardMarkup(inline_keyboard=kb), parse_mode='HTML')
     await db.add_to_db(message.from_user.id, balance=5)
 
+#______settings command handler_____
+@dp.callback_query(F.data == 'settings')
+async def settings(callback: types.CallbackQuery):
+    if await db.get_lang(callback.from_user.id) == 'ru':
+        await callback.message.edit_text('Выберите действие:', reply_markup=types.InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='🌐 Изменить язык', callback_data='change_language'), InlineKeyboardButton(text='📊 Пополнить счет', callback_data='recharge_balance')], [InlineKeyboardButton(text='Вернуться назад🔙', callback_data='back_to_start')]]))
+    else:
+        await callback.message.edit_text('Choose an action:', reply_markup=types.InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='🌐 Change language', callback_data='change_language'), InlineKeyboardButton(text='📊 Recharge', callback_data='recharge_balance')], [InlineKeyboardButton(text='Back🔙', callback_data='back_to_start')]]))
 
+#______language command handler_____
 @dp.message(Command('lang'))
 async def cmd_lang(message: types.Message):
     if await db.get_lang(message.from_user.id) == 'en':
@@ -37,7 +46,18 @@ async def cmd_lang(message: types.Message):
         kb = types.InlineKeyboardMarkup(inline_keyboard=[InlineKeyboardButton(text='🔙 Back', callback_data='back_to_start')])
         await db.set_lang(message.from_user.id, 'en')
         await message.edit_text('✅ Language updated successfully', reply_markup=kb)
+@dp.callback_query(F.data == 'change_language')
+async def change_language(callback: types.CallbackQuery):
+    if await db.get_lang(callback.from_user.id) == 'ru':
+        kb = types.InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='Back🔙', callback_data='back_to_start')]])
+        await db.set_lang(callback.from_user.id, 'en')
+        await callback.message.edit_text('✅ Language changed to English successfully', reply_markup=kb)
+    else:
+        kb = types.InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='Вернуться назад🔙', callback_data='back_to_start')]])
+        await db.set_lang(callback.from_user.id, 'ru')
+        await callback.message.edit_text('✅ Язык успешно изменен на русский', reply_markup=kb)
 
+#______weather command handler_____
 @dp.callback_query(F.data == 'weather')
 async def weather(callback: types.CallbackQuery, state: FSMContext):
     if await db.get_balance(callback.from_user.id) <= 0:
@@ -51,20 +71,8 @@ async def weather(callback: types.CallbackQuery, state: FSMContext):
         if await db.get_lang(callback.from_user.id) == 'ru':
             await callback.message.edit_text('📍 Введите название города, о котором хотите получить данные о погоде')
         else:
-            await callback.message.edit_text('📍 Enter city name, which you wan to get weather data for')
+            await callback.message.edit_text('📍 Enter city name, which you want to get weather data for')
         await state.set_state(City.city)
-
-@dp.callback_query(F.data == 'balance')
-async def get_balance(callback: types.CallbackQuery):
-    user_id = callback.from_user.id
-    balance = await db.get_balance(callback.from_user.id)
-    if await db.get_lang(user_id) == 'ru':
-        kb = types.InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='🔙 Вернуться назад', callback_data='back_to_start')]])
-        await callback.message.edit_text(f'📊 Ваш баланс: {balance} вызовов', reply_markup=kb)
-    else:
-        kb = types.InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='🔙 Back', callback_data='back_to_start')]])
-        await callback.message.edit_text(f'📊 Your balance: {balance} calls', reply_markup=kb)
-
 
 @dp.message(City.city)
 async def get_city_name(message: types.Message, state: FSMContext):
@@ -86,24 +94,17 @@ async def get_city_name(message: types.Message, state: FSMContext):
         await db.change_balance(message.from_user.id, await db.get_balance(message.from_user.id) - 1)
         await state.clear()
 
-@dp.callback_query(F.data == 'settings')
-async def settings(callback: types.CallbackQuery):
-    if await db.get_lang(callback.from_user.id) == 'ru':
-        await callback.message.edit_text('Выберите действие:', reply_markup=types.InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='🌐 Изменить язык', callback_data='change_language'), InlineKeyboardButton(text='📊 Пополнить счет', callback_data='recharge_balance')], [InlineKeyboardButton(text='Вернуться назад🔙', callback_data='back_to_start')]]))
+#______balance command handler_____
+@dp.callback_query(F.data == 'balance')
+async def get_balance(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    balance = await db.get_balance(callback.from_user.id)
+    if await db.get_lang(user_id) == 'ru':
+        kb = types.InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='🔙 Вернуться назад', callback_data='back_to_start')]])
+        await callback.message.edit_text(f'📊 Ваш баланс: {balance} вызовов', reply_markup=kb)
     else:
-        await callback.message.edit_text('Choose an action:', reply_markup=types.InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='🌐 Change language', callback_data='change_language'), InlineKeyboardButton(text='📊 Recharge', callback_data='recharge_balance')], [InlineKeyboardButton(text='Back🔙', callback_data='back_to_start')]]))
-
-
-@dp.callback_query(F.data == 'change_language')
-async def change_language(callback: types.CallbackQuery):
-    if await db.get_lang(callback.from_user.id) == 'ru':
-        kb = types.InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='Back🔙', callback_data='back_to_start')]])
-        await db.set_lang(callback.from_user.id, 'en')
-        await callback.message.edit_text('✅ Language changed to English successfully', reply_markup=kb)
-    else:
-        kb = types.InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='Вернуться назад🔙', callback_data='back_to_start')]])
-        await db.set_lang(callback.from_user.id, 'ru')
-        await callback.message.edit_text('✅ Язык успешно изменен на русский', reply_markup=kb)
+        kb = types.InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='🔙 Back', callback_data='back_to_start')]])
+        await callback.message.edit_text(f'📊 Your balance: {balance} calls', reply_markup=kb)
 
 @dp.callback_query(F.data == 'recharge_balance')
 async def recharge_balance(callback: types.CallbackQuery):
@@ -114,18 +115,18 @@ async def recharge_balance(callback: types.CallbackQuery):
     else:
         kb = types.InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='Back🔙', callback_data='back_to_start')]])
         await callback.message.edit_text('✅ Your balance has been successfully recharged with 5 calls.', reply_markup=kb)
-
+#______back button handler_____
 @dp.callback_query(F.data == 'back_to_start')
 async def back_to_start(callback: types.CallbackQuery):
     en_kb = [[InlineKeyboardButton(text='⛅ Get weather', callback_data='weather')], [InlineKeyboardButton(text='⚙️ Settings', callback_data='settings'), InlineKeyboardButton(text='📊 My balance', callback_data='balance')]]
     ru_kb = [[InlineKeyboardButton(text='⛅ Получить данные о погоде', callback_data='weather')], [InlineKeyboardButton(text='⚙️ Настройки', callback_data='settings'), InlineKeyboardButton(text='📊 Мой баланс', callback_data='balance')]]
-    kb = en_kb if await db.get_lang(callback.message.from_user.id) == 'en' else ru_kb
-    if await db.get_lang(callback.message.from_user.id) =='en':
-        await callback.message.edit_text(f"👋 Hello, <b>{callback.message.from_user.full_name}</b>! ⛅ My name is WeatherBot\n🤗 How can I help you?", reply_markup=types.InlineKeyboardMarkup(inline_keyboard=kb), parse_mode='HTML')
+    kb = en_kb if await db.get_lang(USER.id) == 'en' else ru_kb
+    if await db.get_lang(USER.id) =='en':
+        await callback.message.edit_text(f"👋 Hello, <b>{USER.full_name}</b>! ⛅ My name is WeatherBot\n🤗 How can I help you?", reply_markup=types.InlineKeyboardMarkup(inline_keyboard=kb), parse_mode='HTML')
     else:
-        await callback.message.edit_text(f"👋 Привет, <b>{callback.message.from_user.full_name}</b>! ⛅ Меня зовут WeatherBot\n🤗 Как я могу помочь вам?", reply_markup=types.InlineKeyboardMarkup(inline_keyboard=kb), parse_mode='HTML')
+        await callback.message.edit_text(f"👋 Привет, <b>{USER.full_name}</b>! ⛅ Меня зовут WeatherBot\n🤗 Как я могу помочь вам?", reply_markup=types.InlineKeyboardMarkup(inline_keyboard=kb), parse_mode='HTML')
 
-
+#______main function to start the bot_____
 async def main() -> None:
     token = get_api()[1]
     bot = Bot(token)
