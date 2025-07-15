@@ -79,10 +79,10 @@ async def get_city_name(message: types.Message, state: FSMContext):
     else:
         if await db.get_lang(message.from_user.id) == 'ru':
             kb = types.InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='🔙 Вернуться назад', callback_data='back_to_start')]])
-            await message.answer(f'🏙️ Погода для города {weather_data["name"]}:\n    🌡️ Температура: текущая {weather_data["main"]["temp"]}, ощущается как {weather_data["main"]["feels_like"]}\n    ⛅ {weather_data["weather"][0]["description"].capitalize()}\n  💨 Скорость ветра: {weather_data["wind"]["speed"]}', reply_markup=kb)
+            await message.answer(f'🏙️ Погода для города <b>{message.text}</b>:\n    🌡️ Температура: текущая {weather_data["main"]["temp"]}, ощущается как {weather_data["main"]["feels_like"]}\n    ⛅ {weather_data["weather"][0]["description"].capitalize()}\n  💨 Скорость ветра: {weather_data["wind"]["speed"]}', reply_markup=kb, parse_mode='HTML')
         else:
             kb = types.InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='🔙 Back', callback_data='back_to_start')]])
-            await message.answer(f'🏙️ Weather for {weather_data['name']} City:️\n    🌡️ Temperature:️ current {weather_data['main']['temp']}, feels like {weather_data['main']['feels_like']}\n    ⛅ {weather_data['weather'][0]['description'].capitalize()}\n  💨 Wind speed: {weather_data['wind']['speed']}', reply_markup=kb)
+            await message.answer(f'🏙️ Weather for <b>{message.text}</b> City:️\n    🌡️ Temperature:️ current {weather_data['main']['temp']}, feels like {weather_data['main']['feels_like']}\n    ⛅ {weather_data['weather'][0]['description'].capitalize()}\n  💨 Wind speed: {weather_data['wind']['speed']}', reply_markup=kb, parse_mode='HTML')
         await db.change_balance(message.from_user.id, await db.get_balance(message.from_user.id) - 1)
         await state.clear()
 
