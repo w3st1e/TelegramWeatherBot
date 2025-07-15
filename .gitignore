@@ -1,2 +1,9 @@
-.env
-weathertg.db
+# IDE и окружения
+.idea/
+.vscode/
+.venv/
+
+# Секреты
+apikeys.env
+apikeys/
+usersdb/
