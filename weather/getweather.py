@@ -12,6 +12,8 @@ async def get_weather(city, API_KEY_WEATHER, units='metric', language='en'):
                 print(f"Ошибка: {response_location.status}")
                 return None
             data = await response_location.json()
+        if not data:
+            return None
         latitude, longitude = data[0]['lat'], data[0]['lon']
         async with session.get(f'https://api.openweathermap.org/data/2.5/weather?lat={latitude}&lon={longitude}&appid={API_KEY_WEATHER}&units={units}&lang={language}') as response:
             if response.status != 200:

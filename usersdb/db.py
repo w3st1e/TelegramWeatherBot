@@ -34,6 +34,7 @@ async def set_lang(user_id, language) -> None:
     connect = await aiosqlite.connect('D:/pythoncodes/TelegramBotWeather/weathertg.db')
     cursor = await connect.cursor()
     await cursor.execute('UPDATE users SET lang = ? WHERE userid = ?', (language, user_id))
+    await connect.commit()
     await cursor.close()
     await connect.close()
 
