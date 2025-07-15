@@ -78,7 +78,16 @@ async def weather(callback: types.CallbackQuery, state: FSMContext):
 async def get_city_name(message: types.Message, state: FSMContext):
     await state.update_data(city=message)
     data = await state.get_data()
-    weather_data = await get_weather(data['city'].text, get_api()[0])
+    try:
+        weather_data = await get_weather(data['city'].text, get_api()[0])
+    except Exception as e:
+        ru_kb, en_kb = types.InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='🔙 Вернуться назад', callback_data='back_to_start')]]), types.InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='🔙 Back', callback_data='back_to_start')]])
+        if await db.get_lang(message.from_user.id) == 'ru':
+            await message.answer("⚠️ Произошла ошибка при получении погоды.", reply_markup=ru_kb)
+        else:
+            await message.answer("⚠️ An error occurred while fetching the weather.", reply_markup=en_kb)
+        await state.clear()
+        return
     if not weather_data:
         if await db.get_lang(message.from_user.id) == 'ru':
             await message.answer('❗ Не удалось получить данные о погоде. Проверьте правильность введенного города.', reply_markup=types.InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='🔙 Вернуться назад', callback_data='back_to_start')]]))
